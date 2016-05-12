@@ -30,9 +30,29 @@ class CloudController:
 
     def up(self, cloud_init=None):
         instance_id = self._create_instance(cloud_init)
-        self._wait_for_instance_start(instance_id)
-        self._create_ami(instance_id)
+        self._wait_for_instance_stop(instance_id)
+        self._create_image(instance_id)
         self._terminate_instance(instance_id)
+
+    def down(self):
+        filters = [
+            {'Name': 'tag:ImageName', 'Values': [self.image_name] },
+            {'Name': 'instance-state-name', 'Values': ['running', 'stopped']}
+        ]
+        instance_ids = self._instance_ids_from_filters(filters)
+        if len(instance_ids) > 0:
+            self._ec2_terminate_instances(InstanceIds=instance_ids)
+            print 'terminated %s' % ','.join(instance_ids)
+
+    def _instance_ids_from_filters(self, filters):
+        instance_ids = []
+        instances = self._ec2_describe_instances(Filters=filters)
+        for reservation in instances.get('Reservations', []):
+            for instance in reservation.get('Instances', []):
+                if 'InstanceId' in instance:
+                    instance_ids.append(instance['InstanceId'])
+
+        return instance_ids
 
     def _create_instance(self, cloud_init):
         instance_id = None
@@ -41,7 +61,9 @@ class CloudController:
 
         if cloud_init:
             cloud_init_script = cloud_init.build(self.config_data)
-            kwargs['UserData'] = cloud_init_script
+            kwargs['UserData'] = cloud_init_script + '\nshutdown -h now'
+        else:
+            kwargs['UserData'] = '#!/bin/bash\nshutdown -h now'
 
         max_retries = 6
         retries = 0
@@ -55,7 +77,7 @@ class CloudController:
             except botocore.exceptions.ClientError as ex:
                 print(ex.response["Error"]["Message"])
 
-        self._tag_instance(self.aws.get("tags", {}), instance_id)
+        self._tag_resource(self.aws.get("tags", {}), instance_id)
         return instance_id
 
     def _create_instance_args(self):
@@ -79,19 +101,25 @@ class CloudController:
             kwargs['SecurityGroupIds'] = security_groups
         return kwargs
 
-    def _create_ami(self, instance_id):
-        pass
+    def _create_image(self, instance_id):
+        date = datetime.datetime.now()
+        image_date = date.strftime('%Y-%m-%d-%H-%M-%S')
+        image_name = "%s_%s_%s" % (self.image_name, self.image_version, image_date)
+        image_desc = "%s image created by cloud-compose." % (image_name)
+        image_id = self._ec2_create_image(InstanceId=instance_id, Name=image_name, Description=image_desc)
+        self._tag_resource(self.aws.get("tags", {}), image_id)
+        print 'created %s (%s)' % (image_name, image_id)
 
     def _terminate_instance(self, instance_id):
-        pass
+        self._ec2_terminate_instances(InstanceIds=[instance_id])
 
-    def _wait_for_instance_start(self, instance_id):
+    def _wait_for_instance_stop(self, instance_id):
         while True:
             status = self._find_instance_status(instance_id)
-            if status == 'running':
+            if status == 'stopped':
                 print "\n"
                 break
-            elif status == 'pending':
+            elif status == 'pending' or status == 'running' or status == 'stopping':
                 sys.stdout.write('.')
                 sys.stdout.flush()
                 time.sleep(self.polling_interval)
@@ -101,15 +129,18 @@ class CloudController:
                 self._ec2_terminate_instances(InstanceIds=[instance_id])
                 break
 
-    def _tag_instance(self, tags, instance_id):
-        instance_tags = self._build_instance_tags(tags)
-        self._ec2_create_tags(Resources=[instance_id], Tags=instance_tags)
+    def _tag_resource(self, tags, resource_id):
+        resource_tags = self._build_tags(tags)
+        self._ec2_create_tags(Resources=[resource_id], Tags=resource_tags)
 
-    def _build_instance_tags(self, tags):
+    def _build_tags(self, tags):
         instance_tags = [
             {
                 'Key': 'ImageName',
                 'Value': self.image_name
+            }, {
+                'Key': 'ImageVersion',
+                'Value': str(self.image_version)
             }, {
                 'Key': 'Name',
                 'Value' : ('%s:%s' % (self.image_name, self.image_version)),
@@ -125,9 +156,7 @@ class CloudController:
         return instance_tags
 
     def _is_retryable_exception(exception):
-        return isinstance(exception, botocore.exceptions.ClientError) and \
-           (exception.response["Error"]["Code"] in ['InvalidIPAddress.InUse', 'InvalidInstanceID.NotFound'] or
-            'Invalid IAM Instance Profile name' in exception.response["Error"]["Message"])
+        return not isinstance(exception, botocore.exceptions.ClientError)
 
     @retry(retry_on_exception=_is_retryable_exception, stop_max_delay=10000, wait_exponential_multiplier=500, wait_exponential_max=2000)
     def _find_instance_status(self, instance_id):
@@ -144,6 +173,10 @@ class CloudController:
     @retry(retry_on_exception=_is_retryable_exception, stop_max_delay=10000, wait_exponential_multiplier=500, wait_exponential_max=2000)
     def _ec2_create_tags(self, **kwargs):
         return self.ec2.create_tags(**kwargs)
+
+    @retry(retry_on_exception=_is_retryable_exception, stop_max_delay=10000, wait_exponential_multiplier=500, wait_exponential_max=2000)
+    def _ec2_create_image(self, **kwargs):
+        return self.ec2.create_image(**kwargs)['ImageId']
 
     @retry(retry_on_exception=_is_retryable_exception, stop_max_delay=10000, wait_exponential_multiplier=500, wait_exponential_max=2000)
     def _ec2_terminate_instances(self, **kwargs):

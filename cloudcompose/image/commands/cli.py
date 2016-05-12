@@ -8,7 +8,7 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--cloud-init/--no-cloud-init', default=True, help="Initialize the instance with a cloud init script")
+@click.option('--cloud-init/--no-cloud-init', default=True, help="Initialize the instance with a cloud init script. Otherwise the instance will just stop once it starts.")
 def up(cloud_init):
     """
     creates a new cluster
@@ -21,6 +21,15 @@ def up(cloud_init):
 
     cloud_controller = CloudController(cloud_config)
     cloud_controller.up(ci)
+
+@cli.command()
+def down():
+    """
+    destroys an existing cluster
+    """
+    cloud_config = CloudConfig()
+    cloud_controller = CloudController(cloud_config)
+    cloud_controller.down()
 
 @cli.command()
 def build():
