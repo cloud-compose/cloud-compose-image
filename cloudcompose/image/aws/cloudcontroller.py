@@ -83,8 +83,8 @@ class CloudController:
 
     def _create_instance_args(self):
         ami = self.aws['ami']
-        keypair = self.aws['keypair']
-        security_groups = self.aws.get('security_groups', '').split(',')
+        keypair = self.aws.get('keypair')
+        security_groups = self.aws.get('security_groups')
         instance_type = self.aws.get('instance_type', 't2.micro')
         detailed_monitoring = self.aws.get('detailed_monitoring', False)
         ebs_optimized = self.aws.get('ebs_optimized', False)
@@ -92,14 +92,16 @@ class CloudController:
             'ImageId': ami,
             'MinCount': 1,
             'MaxCount': 1,
-            'KeyName': keypair,
             'InstanceType': instance_type,
             'Monitoring': { 'Enabled': detailed_monitoring },
             'EbsOptimized': ebs_optimized
         }
 
-        if len(security_groups) > 0:
-            kwargs['SecurityGroupIds'] = security_groups
+        if security_groups:
+            kwargs['SecurityGroupIds'] = security_groups.split(',')
+        if keypair:
+            kwargs['KeyName'] = keypair
+
         return kwargs
 
     def _create_image(self, instance_id):
