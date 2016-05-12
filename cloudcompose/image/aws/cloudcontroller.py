@@ -29,6 +29,7 @@ class CloudController:
                             region_name=environ.get('AWS_REGION', 'us-east-1'))
 
     def up(self, cloud_init=None):
+        self._remove_unused_images()
         instance_id = self._create_instance(cloud_init)
         self._wait_for_instance_stop(instance_id)
         self._create_image(instance_id)
@@ -155,6 +156,38 @@ class CloudController:
 
         return instance_tags
 
+    def _remove_unused_images(self):
+        image_ids = self._find_unused_images(self._find_available_image_ids())
+        for image_id in image_ids:
+            self._ec2_deregister_image(ImageId=image_id)
+            print 'deleted unused image %s' % image_id
+
+    def _find_available_image_ids(self):
+        image_ids = []
+        filters = [
+            {"Name": "state", "Values": ["available"]},
+            {"Name": "tag:ImageName", "Values": [self.image_name]}
+        ]
+        for image in self._ec2_describe_images(Filters=filters):
+            image_id = image['ImageId']
+            if len(image_id) == 0:
+                continue
+            image_ids.append(image_id)
+        return image_ids
+
+    def _find_unused_images(self, image_ids):
+        unused_image_ids = []
+        for image_id in image_ids:
+            filters = [
+                {"Name": "image-id", "Values": [image_id]},
+                {'Name': 'instance-state-name', 'Values': ['running', 'pending']}
+            ]
+            reservations = self._ec2_describe_instances(Filters=filters).get('Reservations', [])
+            if len(reservations) == 0:
+                unused_image_ids.append(image_id)
+
+        return unused_image_ids
+
     def _is_retryable_exception(exception):
         return not isinstance(exception, botocore.exceptions.ClientError)
 
@@ -171,6 +204,10 @@ class CloudController:
         return self.ec2.run_instances(**kwargs)
 
     @retry(retry_on_exception=_is_retryable_exception, stop_max_delay=10000, wait_exponential_multiplier=500, wait_exponential_max=2000)
+    def _ec2_deregister_image(self, **kwargs):
+        return self.ec2.deregister_image(**kwargs)
+
+    @retry(retry_on_exception=_is_retryable_exception, stop_max_delay=10000, wait_exponential_multiplier=500, wait_exponential_max=2000)
     def _ec2_create_tags(self, **kwargs):
         return self.ec2.create_tags(**kwargs)
 
@@ -185,3 +222,7 @@ class CloudController:
     @retry(retry_on_exception=_is_retryable_exception, stop_max_delay=10000, wait_exponential_multiplier=500, wait_exponential_max=2000)
     def _ec2_describe_instances(self, **kwargs):
         return self.ec2.describe_instances(**kwargs)
+
+    @retry(retry_on_exception=_is_retryable_exception, stop_max_delay=10000, wait_exponential_multiplier=500, wait_exponential_max=2000)
+    def _ec2_describe_images(self, **kwargs):
+        return self.ec2.describe_images(**kwargs)['Images']
