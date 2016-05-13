@@ -56,7 +56,7 @@ class CloudController:
         return instance_ids
 
     def _create_instance(self, cloud_init):
-        instance_id = None
+        instance = None
         kwargs = self._create_instance_args()
         kwargs['SubnetId'] = self.aws["subnet"]
 
@@ -73,12 +73,15 @@ class CloudController:
             try:
                 response = self._ec2_run_instances(**kwargs)
                 if response:
-                    instance_id = response['Instances'][0]['InstanceId']
+                    instance = response['Instances'][0]
                 break
             except botocore.exceptions.ClientError as ex:
                 print(ex.response["Error"]["Message"])
 
+        instance_id = instance['InstanceId']
+        private_ip = instance['PrivateIpAddress']
         self._tag_resource(self.aws.get("tags", {}), instance_id)
+        print 'created instance %s %s (%s)' % (instance_id, self._instance_name(), private_ip)
         return instance_id
 
     def _create_instance_args(self):
@@ -111,7 +114,7 @@ class CloudController:
         image_desc = "%s image created by cloud-compose." % (image_name)
         image_id = self._ec2_create_image(InstanceId=instance_id, Name=image_name, Description=image_desc)
         self._tag_resource(self.aws.get("tags", {}), image_id)
-        print 'created %s (%s)' % (image_name, image_id)
+        print 'created %s %s' % (image_id, image_name)
 
     def _terminate_instance(self, instance_id):
         self._ec2_terminate_instances(InstanceIds=[instance_id])
@@ -136,6 +139,9 @@ class CloudController:
         resource_tags = self._build_tags(tags)
         self._ec2_create_tags(Resources=[resource_id], Tags=resource_tags)
 
+    def _instance_name(self):
+        return '%s:%s' % (self.image_name, self.image_version)
+
     def _build_tags(self, tags):
         instance_tags = [
             {
@@ -146,7 +152,7 @@ class CloudController:
                 'Value': str(self.image_version)
             }, {
                 'Key': 'Name',
-                'Value' : ('%s:%s' % (self.image_name, self.image_version)),
+                'Value' : self._instance_name()
             }
         ]
 
