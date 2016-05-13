@@ -16,7 +16,7 @@ setup(
         'Jinja2>=2.8',
         'jmespath>=0.9.0',
         'MarkupSafe>=0.23',
-        'cloud-compose>=0.2.0',
+        'cloud-compose>=0.3.0',
         'python-dateutil>=2.5.3',
         'PyYAML>=3.11',
         'retrying>=1.3.3',
