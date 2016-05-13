@@ -1,0 +1,10 @@
+image:
+  name: docker
+  version: '1.10'
+  search_path:
+    - ../templates
+  aws:
+    ami: ${AMI_ID}
+    subnet: ${SUBNET_ID}
+    keypair: ${KEYPAIR}
+    security_groups: ${SECURITY_GROUP_ID}
