@@ -2,6 +2,7 @@ import click
 from cloudcompose.cloudinit import CloudInit
 from cloudcompose.image.aws.cloudcontroller import CloudController
 from cloudcompose.config import CloudConfig
+from cloudcompose.exceptions import CloudComposeException
 
 @click.group()
 def cli():
@@ -13,30 +14,39 @@ def up(cloud_init):
     """
     creates a new cluster
     """
-    cloud_config = CloudConfig()
-    ci = None
+    try:
+        cloud_config = CloudConfig()
+        ci = None
 
-    if cloud_init:
-        ci = CloudInit('image')
+        if cloud_init:
+            ci = CloudInit('image')
 
-    cloud_controller = CloudController(cloud_config)
-    cloud_controller.up(ci)
+        cloud_controller = CloudController(cloud_config)
+        cloud_controller.up(ci)
+    except CloudComposeException as ex:
+        print ex.message
 
 @cli.command()
 def down():
     """
     destroys an existing cluster
     """
-    cloud_config = CloudConfig()
-    cloud_controller = CloudController(cloud_config)
-    cloud_controller.down()
+    try:
+        cloud_config = CloudConfig()
+        cloud_controller = CloudController(cloud_config)
+        cloud_controller.down()
+    except CloudComposeException as ex:
+        print ex.message
 
 @cli.command()
 def build():
     """
     builds the cloud_init script
     """
-    cloud_config = CloudConfig()
-    config_data = cloud_config.config_data('image')
-    cloud_init = CloudInit('image')
-    print cloud_init.build(config_data)
+    try:
+        cloud_config = CloudConfig()
+        config_data = cloud_config.config_data('image')
+        cloud_init = CloudInit('image')
+        print cloud_init.build(config_data)
+    except CloudComposeException as ex:
+        print ex.message
