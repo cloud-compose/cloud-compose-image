@@ -197,7 +197,8 @@ class CloudController:
         return unused_image_ids
 
     def _is_retryable_exception(exception):
-        return not isinstance(exception, botocore.exceptions.ClientError)
+        return not isinstance(exception, botocore.exceptions.ClientError) or \
+            (exception.response["Error"]["Code"] in ['InvalidInstanceID.NotFound'])
 
     @retry(retry_on_exception=_is_retryable_exception, stop_max_delay=10000, wait_exponential_multiplier=500, wait_exponential_max=2000)
     def _find_instance_status(self, instance_id):
