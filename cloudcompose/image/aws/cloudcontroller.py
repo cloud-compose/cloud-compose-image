@@ -174,7 +174,8 @@ class CloudController:
         image_ids = []
         filters = [
             {"Name": "state", "Values": ["available"]},
-            {"Name": "tag:ImageName", "Values": [self.image_name]}
+            {"Name": "tag:ImageName", "Values": [self.image_name]},
+            {"Name": "tag:ImageVersion", "Values": [self.image_version]}
         ]
         for image in self._ec2_describe_images(Filters=filters):
             image_id = image['ImageId']
