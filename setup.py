@@ -4,7 +4,7 @@ import warnings
 
 setup(
     name='cloud-compose-image',
-    version='0.1.2',
+    version='0.1.3',
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
@@ -32,7 +32,7 @@ setup(
     author="Patrick Cullen and the WaPo platform tools team",
     author_email="opensource@washingtonpost.com",
     url="https://github.com/cloud-compose/cloud-compose-image",
-    download_url = "https://github.com/cloud-compose/cloud-compose-image/tarball/v0.1.2",
+    download_url = "https://github.com/cloud-compose/cloud-compose-image/tarball/v0.1.3",
     keywords = ['cloud', 'compose', 'aws'],
     classifiers = []
 )
