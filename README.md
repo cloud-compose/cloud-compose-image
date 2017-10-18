@@ -1,33 +1,33 @@
 # Cloud Compose image plugin
 The Cloud Compose image plugin is used to create a base image for launching instances from. The base image should have all the package install commands applied to it, but none of the configuration changes. This ensures that all nodes in a cluster have exactly the same packages in them, but a base image can be reused across many projects by changing the configuration options.
 
-To create a new image you need the following items
-1. cloud-compose.yml 
-1. image.sh script for updating the image
+To create a new image, you need the following items
+1. `cloud-compose.yml`
+1. `image.sh` script for updating the image
 
 Once you have the configuration files run the following commands to create a new image: 
 ```
 cd my-configs
 pip install cloud-compose cloud-compose-image
-pip freeze -r > requirements.txt
+pip freeze > requirements.txt
 cloud-compose image up
 ```
 
-See the example folder for a basic docker 1.10 image configuration.
+See the [examples](https://github.com/cloud-compose/cloud-compose-image/tree/master/examples/docker) folder for a basic docker 1.10 image configuration.
 
-Although the cluster plugins is designed to be cloud agnostic, AWS is the only cloud provider currently supported.  Support for other cloud providers is welcomed as pull requests.
+Although the cluster plugin is designed to be cloud agnostic, AWS is the only cloud provider currently supported.  Support for other cloud providers is welcomed as pull requests.
 
 ### AWS backend
-If you are using the AWS backend the image plugin uses the [Boto](http://boto3.readthedocs.io/en/latest/) client which requires the following environment variables:
+If you are using the AWS backend, the image plugin uses the [Boto](http://boto3.readthedocs.io/en/latest/) client which requires the following environment variables:
 
 * AWS_REGION
 * AWS_ACCESS_KEY_ID
 * AWS_SECRET_ACCESS_KEY
 
-If you are using multiple AWS accounts it is convenient to use [Envdir](https://pypi.python.org/pypi/envdir) to easily switch between AWS accounts.
+If you are using multiple AWS accounts, it is convenient to use [Envdir](https://pypi.python.org/pypi/envdir) to easily switch between AWS accounts.
 
 ## Configuration 
-To understand the purpose of each configuration file consider the follow examples with an explanation of each element.
+To understand the purpose of each configuration file, consider the follow examples with an explanation of each element.
 
 ### cloud-compose.yml
 ```yaml
@@ -72,10 +72,10 @@ The ``instance_type`` you want to use for the image creation process. Defaults t
 The ``keypair`` is the SSH key that will be added to the EC2 servers. If you do not want to ssh into the instance to troubleshoot, this is not needed.
 
 ## Cleanup
-Everytime an image is created, unused images with the same ``name`` are delete. The delete process uses the ImageName tag attribute to find and delete old images that are not currently being used by running instances.
+Every time an image is created, unused images with the same ``name`` are deleted. The delete process uses the ImageName tag attribute to find and delete old images that are not currently being used by running instances.
 
 ## Contributing 
-To work on the code locally, checkout both cloud-compose and cloud-compose-image to the same parent directory. Then use a virtualenv and pip install editable to start working on them locally.
+To work on the code locally, checkout both [cloud-compose](https://github.com/cloud-compose/cloud-compose) and [cloud-compose-image](https://github.com/cloud-compose/cloud-compose-image) to the same parent directory. Then use a virtualenv and pip install editable to start working on them locally.
 ```
 mkvirtualenv cloud-compose
 pip install --editable cloud-compose
