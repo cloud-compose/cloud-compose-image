@@ -24,7 +24,7 @@ class CloudController:
         self.polling_interval = 20
 
     def _get_ec2_client(self):
-        return boto3.client('ec2')
+        return boto3.client('ec2', region_name=environ.get('AWS_REGION', 'us-east-1'))
 
     def up(self, cloud_init=None):
         self._remove_unused_images()
