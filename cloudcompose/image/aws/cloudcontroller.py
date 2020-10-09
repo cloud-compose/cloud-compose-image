@@ -41,7 +41,7 @@ class CloudController:
         instance_ids = self._instance_ids_from_filters(filters)
         if len(instance_ids) > 0:
             self._ec2_terminate_instances(InstanceIds=instance_ids)
-            print 'terminated %s' % ','.join(instance_ids)
+            print('terminated %s' % ','.join(instance_ids))
 
     def _instance_ids_from_filters(self, filters):
         instance_ids = []
@@ -74,12 +74,12 @@ class CloudController:
                     instance = response['Instances'][0]
                 break
             except botocore.exceptions.ClientError as ex:
-                print(ex.response["Error"]["Message"])
+                print((ex.response["Error"]["Message"]))
 
         instance_id = instance['InstanceId']
         private_ip = instance['PrivateIpAddress']
         self._tag_resource(self.aws.get("tags", {}), instance_id)
-        print 'created instance %s %s (%s)' % (instance_id, self._instance_name(), private_ip)
+        print('created instance %s %s (%s)' % (instance_id, self._instance_name(), private_ip))
         return instance_id
 
     def _create_instance_args(self):
@@ -112,7 +112,7 @@ class CloudController:
         image_desc = "%s image created by cloud-compose." % (image_name)
         image_id = self._ec2_create_image(InstanceId=instance_id, Name=image_name, Description=image_desc)
         self._tag_resource(self.aws.get("tags", {}), image_id)
-        print 'created %s %s' % (image_id, image_name)
+        print('created %s %s' % (image_id, image_name))
 
     def _terminate_instance(self, instance_id):
         self._ec2_terminate_instances(InstanceIds=[instance_id])
@@ -121,7 +121,7 @@ class CloudController:
         while True:
             status = self._find_instance_status(instance_id)
             if status == 'stopped':
-                print "\n"
+                print("\n")
                 break
             elif status == 'pending' or status == 'running' or status == 'stopping':
                 sys.stdout.write('.')
@@ -129,7 +129,7 @@ class CloudController:
                 time.sleep(self.polling_interval)
                 continue
             else:
-                print "\ninstance %s has entered an unexpected state and will be terminated" % instance_id
+                print("\ninstance %s has entered an unexpected state and will be terminated" % instance_id)
                 self._ec2_terminate_instances(InstanceIds=[instance_id])
                 break
 
@@ -154,7 +154,7 @@ class CloudController:
             }
         ]
 
-        for key, value in tags.items():
+        for key, value in list(tags.items()):
             instance_tags.append({
                 "Key": key,
                 "Value" : str(value),
@@ -166,7 +166,7 @@ class CloudController:
         image_ids = self._find_unused_images(self._find_available_image_ids())
         for image_id in image_ids:
             self._ec2_deregister_image(ImageId=image_id)
-            print 'deleted unused image %s' % image_id
+            print('deleted unused image %s' % image_id)
 
     def _find_available_image_ids(self):
         image_ids = []

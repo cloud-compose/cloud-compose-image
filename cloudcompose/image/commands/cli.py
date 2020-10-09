@@ -24,7 +24,7 @@ def up(cloud_init):
         cloud_controller = CloudController(cloud_config)
         cloud_controller.up(ci)
     except CloudComposeException as ex:
-        print ex.message
+        print(ex)
 
 @cli.command()
 def down():
@@ -36,7 +36,7 @@ def down():
         cloud_controller = CloudController(cloud_config)
         cloud_controller.down()
     except CloudComposeException as ex:
-        print ex.message
+        print(ex)
 
 @cli.command()
 def build():
@@ -47,6 +47,6 @@ def build():
         cloud_config = CloudConfig()
         config_data = cloud_config.config_data('image')
         cloud_init = CloudInit('image')
-        print cloud_init.build(config_data)
+        print(cloud_init.build(config_data))
     except CloudComposeException as ex:
-        print ex.message
+        print(ex)
